@@ -27,18 +27,18 @@ DallasTemperature sensors(&oneWire);
 double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
-PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT);
+PID myPID(&Input, &Output, &Setpoint,2,5,1, DIRECT); // was 2 5 1
 
 int WindowSize = 1000;
 unsigned long windowStartTime;
 
 // constants won't change. They're used here to set pin numbers and other values:
-const int ForceStartSwitch = 11;     // pin number for the ForceStartSwitch
-const int BumpSwitch = 10;           // pin number for the bumpswitch
-const int Motor =  9;               // pin number for the Motor (PWM pin)
-const int MotorDriveValue = 140;    // PWM value to drive motor
-const long MotorMoveTime = 59000;   // 59 seconds Motor move time in milliseconds
-const long MotorRestTime = 21600000;   // 6 hours Motor rest time in milliseconds (1000 x 60 x 60 x 6)
+const int ForceStartSwitch = 11;       // pin number for the ForceStartSwitch
+const int BumpSwitch = 10;             // pin number for the bumpswitch
+const int Motor =  9;                  // pin number for the Motor (PWM pin)
+const int MotorDriveValue = 140;       // PWM value to drive motor
+const long MotorMoveTime = 59000;      // 59 seconds Motor move time in milliseconds
+const long MotorRestTime = 21600000;   // 21600000 = 6 hours Motor rest time in milliseconds (1000 x 60 x 60 x 6)
 
 // variables will change:
 int motorState = 0;          // variable for tracking motor state
@@ -64,7 +64,7 @@ void setup() {
   windowStartTime = millis();
   
   //initialize the variables we're linked to
-  Setpoint = 104;
+  Setpoint = 102; //for some reason the thermometer reads about 2 deg F high
 
   //tell the PID to range between 0 and the full window size
   myPID.SetOutputLimits(0, WindowSize);
@@ -91,6 +91,8 @@ void setup() {
 }
 
 void loop() {
+
+  float t2move; //time to move variable for showing % of time left till next move 
 
   //check for force start switch and start motor if pressed
   if (digitalRead(ForceStartSwitch) && motorState == 0) {
@@ -137,10 +139,19 @@ void loop() {
   myPID.Compute();
   
   // a little bit of serial output if desired
-  Serial.print(Input);
-  Serial.print(" ");
-  Serial.print(Output/WindowSize*100);
-  Serial.println(" %");
+  Serial.print("Setpoint:"); Serial.print(Setpoint);
+  Serial.print("\t");
+  Serial.print("Current_Temp:"); Serial.print(Input);
+  Serial.print("\t");
+  Serial.print("PID_Output%:"); Serial.print(Output/WindowSize*100);
+  Serial.print("\t");
+  
+  //calculate the % of time till the next move (and make sure it stays withing bounds
+  t2move = float(MotorRestTime-(millis() - previousMillis))/MotorRestTime*100;
+  if(t2move>100.0){
+    t2move=100.0;
+    }
+  Serial.print("Time_to_Move%:"); Serial.println(t2move);
 
   /************************************************
    * turn the output pin on/off based on pid output
